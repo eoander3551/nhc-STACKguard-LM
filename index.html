@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHC STACKguard — LogicMonitor Platform Specification</title>
+<style>
+  :root {
+    --ink: #0f1923;
+    --ink-mid: #2d3f50;
+    --ink-light: #5a6e80;
+    --rule: #d0d9e2;
+    --surface: #f5f7fa;
+    --accent: #0055a4;
+    --accent-light: #e6eef8;
+    --warn: #d97706;
+    --crit: #c0392b;
+    --ok: #1a7a4a;
+    --code-bg: #eef2f7;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--white);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+
+  /* HEADER */
+  .doc-header {
+    background: var(--ink);
+    color: white;
+    margin: 0 -24px 48px;
+    padding: 40px 48px 36px;
+    border-bottom: 4px solid var(--accent);
+  }
+  .doc-header .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #7a9bbf; margin-bottom: 10px; }
+  .doc-header h1 { font-size: 26px; font-weight: 700; line-height: 1.25; margin-bottom: 16px; }
+  .doc-meta { display: flex; gap: 32px; font-size: 12px; color: #9ab3c8; flex-wrap: wrap; }
+  .doc-meta span strong { color: #c6d8e8; font-weight: 600; }
+
+  /* ARCHITECTURE CALLOUT */
+  .arch-box {
+    background: var(--ink);
+    color: white;
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-bottom: 48px;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0 28px;
+  }
+  .arch-box .divider { background: rgba(255,255,255,0.15); }
+  .arch-col h4 { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7a9bbf; margin-bottom: 10px; }
+  .arch-col p { font-size: 13px; color: #c0d3e6; line-height: 1.6; margin: 0; }
+  .arch-col .arch-label { font-size: 17px; font-weight: 700; color: white; margin-bottom: 6px; }
+
+  /* TOC */
+  .toc { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 20px 24px; margin-bottom: 48px; border-radius: 0 4px 4px 0; }
+  .toc h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 12px; }
+  .toc ol { list-style: decimal; padding-left: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; }
+  .toc li a { color: var(--accent); text-decoration: none; font-size: 13px; }
+  .toc li a:hover { text-decoration: underline; }
+
+  /* SECTIONS */
+  .section { margin-bottom: 52px; }
+  h2 { font-size: 18px; font-weight: 700; padding-bottom: 8px; border-bottom: 2px solid var(--rule); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  h2 .section-num { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px; }
+  h3 { font-size: 14px; font-weight: 700; color: var(--ink-mid); margin: 24px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h3::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; flex-shrink: 0; }
+  h4 { font-size: 13px; font-weight: 700; color: var(--ink-mid); margin: 16px 0 6px; }
+  p { margin-bottom: 10px; color: var(--ink-mid); font-size: 13.5px; }
+  p:last-child { margin-bottom: 0; }
+  ul.body-list { list-style: disc; padding-left: 20px; color: var(--ink-mid); font-size: 13.5px; line-height: 1.9; margin: 8px 0; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--ink); color: white; }
+  thead th { padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:nth-child(odd) { background: var(--surface); }
+  tbody tr:nth-child(even) { background: var(--white); }
+  tbody tr:hover { background: var(--accent-light); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; font-size: 13px; color: var(--ink-mid); }
+  td strong { color: var(--ink); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 11.5px; color: #1a3a5c; }
+  .badge-crit { color: var(--crit); font-weight: 600; }
+  .badge-warn { color: var(--warn); font-weight: 600; }
+  .badge-ok   { color: var(--ok);   font-weight: 600; }
+
+  /* CALLOUTS */
+  .callout { border-left: 4px solid; padding: 14px 16px; margin: 14px 0; border-radius: 0 4px 4px 0; font-size: 13px; color: var(--ink-mid); }
+  .callout.note { border-color: var(--accent); background: var(--accent-light); }
+  .callout.warn { border-color: var(--warn); background: #fef9ec; }
+  .callout.ok   { border-color: var(--ok);   background: #edf7f2; }
+  .callout strong { display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .callout.note strong { color: var(--accent); }
+  .callout.warn strong { color: var(--warn); }
+  .callout.ok   strong { color: var(--ok); }
+
+  /* TAGS */
+  .tag { display: inline-block; background: #e8f0fb; border: 1px solid #aac3e8; color: var(--accent); font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+  .tag.red   { background: #fdecea; border-color: #f0a0a0; color: #8b0000; }
+  .tag.amber { background: #fef6e8; border-color: #f0c070; color: #7a4f00; }
+  .tag.green { background: #e8f5ee; border-color: #a5d4b9; color: #1a7a4a; }
+
+  /* SKU ENTITLEMENT TABLE */
+  .sku-table thead tr { background: #1a3a5c; }
+  .sku-check { text-align: center; font-size: 15px; }
+  .sku-check.y::before { content: '✓'; color: var(--ok); font-weight: 700; }
+  .sku-check.n::before { content: '—'; color: #bbb; }
+  .sku-name { font-weight: 700; color: var(--ink); font-size: 13px; }
+
+  /* FLOW */
+  .flow { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 24px; margin: 14px 0; }
+  .flow-step { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 10px; }
+  .flow-step:last-child { margin-bottom: 0; }
+  .step-num { flex-shrink: 0; width: 24px; height: 24px; background: var(--accent); color: white; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .step-num.cond { background: var(--warn); border-radius: 4px; font-size: 9px; }
+  .step-content { font-size: 13px; color: var(--ink-mid); }
+  .step-content strong { color: var(--ink); }
+  .flow-arrow { color: var(--ink-light); font-size: 16px; margin: 0 0 10px 8px; }
+
+  /* PHASE GRID */
+  .phase-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 14px 0; }
+  .phase-card { border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+  .phase-head { background: var(--ink-mid); color: white; padding: 10px 14px; font-size: 12px; font-weight: 700; }
+  .phase-body { padding: 12px 14px; background: var(--surface); }
+  .phase-body ul { list-style: none; padding: 0; }
+  .phase-body li { font-size: 12.5px; color: var(--ink-mid); padding: 3px 0 3px 14px; position: relative; }
+  .phase-body li::before { content: '›'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+  /* PLATFORM GRID */
+  .platform-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 14px 0; }
+  .platform-card { border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; background: var(--surface); }
+  .platform-card h4 { font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .platform-card ul { list-style: none; padding: 0; }
+  .platform-card li { font-size: 12px; color: var(--ink-mid); padding: 2px 0 2px 12px; position: relative; }
+  .platform-card li::before { content: '·'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+  /* OQ */
+  .oq-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); align-items: flex-start; }
+  .oq-item:last-child { border-bottom: none; }
+  .oq-num { flex-shrink: 0; background: var(--surface); border: 2px solid var(--accent); color: var(--accent); font-size: 12px; font-weight: 800; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .oq-content { font-size: 13px; color: var(--ink-mid); }
+  .oq-content strong { color: var(--ink); display: block; margin-bottom: 3px; }
+
+  @media print {
+    .doc-header { margin: 0 0 32px; }
+    body { padding: 0; max-width: 100%; }
+    .arch-box { grid-template-columns: 1fr; }
+    .arch-box .divider { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="eyebrow">New Horizon Communications — Managed Services Engineering</div>
+  <h1>STACKguard<br>LogicMonitor Platform Specification</h1>
+  <div class="doc-meta">
+    <span><strong>Version:</strong> 2.0 Draft</span>
+    <span><strong>Audience:</strong> LogicMonitor Implementation Team</span>
+    <span><strong>Product Line:</strong> STACKguard (SG-1 through SG-4)</span>
+    <span><strong>Status:</strong> For Review</span>
+  </div>
+</div>
+
+<!-- ARCHITECTURE PHILOSOPHY -->
+<div class="arch-box">
+  <div class="arch-col">
+    <h4>SG-1 — LM Website Modules</h4>
+    <div class="arch-label">No Collector Required</div>
+    <p>SG-1 uses LM's Website monitoring modules to check reachability of a customer IP from LM's own infrastructure. The device is not onboarded as an LM Resource. No Collector is deployed. This is already working. The Website module is retired when a site upgrades to SG-2+.</p>
+  </div>
+  <div class="divider"></div>
+  <div class="arch-col">
+    <h4>SG-2 and Above — LM Resources</h4>
+    <div class="arch-label">Collector + Cloud Controller</div>
+    <p>Devices are onboarded as LM Resources with a deployed NHC Collector. Reachability is derived from the cloud controller for supported platforms (VeloCloud, Bigleaf, UniFi, Peplink, Cradlepoint) or from LM Collector ICMP ping (PingMulti DataSource) for non-controller platforms (Juniper, Fortinet, Cisco). <code>nhc.sg_sku</code> controls what is surfaced to the customer and what actions are enabled.</p>
+  </div>
+</div>
+
+<!-- TOC -->
+<nav class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Purpose</a></li>
+    <li><a href="#s2">Device Fleet Scope</a></li>
+    <li><a href="#s3">LM Metric Schema</a></li>
+    <li><a href="#s4">Alert Architecture</a></li>
+    <li><a href="#s5">CustomCall Ticket Integration</a></li>
+    <li><a href="#s6">Automated Remediation</a></li>
+    <li><a href="#s7">Portal &amp; Support Data Surface</a></li>
+    <li><a href="#s8">NHC Device Property Schema</a></li>
+    <li><a href="#s9">STACKguard SKU → Feature Map</a></li>
+    <li><a href="#s10">Platform Implementation Notes</a></li>
+    <li><a href="#s11">Build Phases</a></li>
+    <li><a href="#s12">Open Questions for LM Team</a></li>
+  </ol>
+</nav>
+
+
+<!-- S1 PURPOSE -->
+<div class="section" id="s1">
+  <h2><span class="section-num">01</span> Purpose</h2>
+  <p>NHC's STACKguard service currently uses LogicMonitor for ICMP reachability monitoring with auto ticket creation in CustomCall — this is SG-1 and it works. This document specifies everything NHC needs LM to do across the full STACKguard product line.</p>
+
+  <div class="callout note">
+    <strong>Key Architectural Distinction</strong>
+    SG-1 uses LM's <strong>Website monitoring modules</strong> — LM checks a customer IP from its own infrastructure. No Collector is deployed and the device is not onboarded as an LM Resource. SG-2 and above move to <strong>LM Resources</strong>: devices are onboarded with a Collector, DataSources run against them, and the full alert and remediation stack operates at the Resource layer. These are two distinct LM constructs and the build approach for each is different.
+  </div>
+
+  <p>For SG-2 through SG-4, LM is configured once to support all capabilities across all managed sites. A property on each Resource (<code>nhc.sg_sku</code>) determines what gets ticketed, what is displayed in the customer portal, and whether remediation fires. The SKU is the product — LM is the engine.</p>
+</div>
+
+
+<!-- S2 FLEET -->
+<div class="section" id="s2">
+  <h2><span class="section-num">02</span> Device Fleet Scope</h2>
+  <p>All platforms below are in scope for the SG-2 through SG-4 Resource-based monitoring stack. SG-1 does not onboard these as LM Resources — it monitors a customer IP via Website module only. For SG-2+, platforms with a cloud controller use the controller as the authoritative reachability and circuit status source. Platforms without a cloud controller use LM Collector ICMP ping (PingMulti DataSource) via NHC infrastructure.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Platform</th>
+          <th>Cloud Controller</th>
+          <th>SG-2+ Reachability Source</th>
+          <th>Primary Data Collection</th>
+          <th>LM Exchange</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Network Controller / WiFi</td><td>Ubiquiti UniFi (UDM Pro, USW, UAP)</td><td>UniFi Site Manager</td><td>Cloud controller</td><td>UniFi Controller REST API</td><td class="badge-warn">Partial — confirm</td></tr>
+        <tr><td>WISP / CPE</td><td>Ubiquiti UISP (airMAX)</td><td>UISP Cloud</td><td>Cloud controller</td><td>UISP REST API</td><td class="badge-crit">Gap — custom DS needed</td></tr>
+        <tr><td>Distribution Switch</td><td>Juniper EX2300</td><td>None</td><td>LM Collector ICMP</td><td>SNMP (JUNOS-MIB + IF-MIB)</td><td class="badge-ok">Available</td></tr>
+        <tr><td>SD-WAN Edge</td><td>VMware VeloCloud</td><td>VeloCloud Orchestrator</td><td>Cloud controller</td><td>VCO REST API</td><td class="badge-warn">Partial — confirm link DS</td></tr>
+        <tr><td>WAN Bonding</td><td>Bigleaf SD-WAN</td><td>Bigleaf Cloud</td><td>Cloud controller</td><td>Bigleaf Cloud REST API</td><td class="badge-crit">Gap — custom DS needed</td></tr>
+        <tr><td>Firewall / UTM</td><td>Fortinet FortiGate</td><td>FortiManager (optional)</td><td>LM Collector ICMP</td><td>SNMP + FortiOS REST API</td><td class="badge-ok">Available</td></tr>
+        <tr><td>VoIP Router</td><td>Cisco 2400 Series</td><td>None</td><td>LM Collector ICMP</td><td>SNMP (Cisco MIBs)</td><td class="badge-ok">Available</td></tr>
+        <tr><td>LTE / Bonding Router</td><td>Peplink B1</td><td>Peplink InControl2</td><td>Cloud controller</td><td>SNMP + InControl2 API</td><td class="badge-warn">Partial — confirm cellular DS</td></tr>
+        <tr><td>LTE Router</td><td>Cradlepoint 1850</td><td>NetCloud Manager</td><td>Cloud controller</td><td>NetCloud REST API</td><td class="badge-warn">Partial — confirm</td></tr>
+        <tr><td>Remote Power</td><td>Synaccess PDU</td><td>None</td><td>LM Collector ICMP</td><td>ICMP + REST API (remediation)</td><td>ICMP monitored; API for remediation</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <strong>Action Required — LM Team</strong>
+    Please provide a gap analysis confirming Exchange DataSource coverage for each platform marked Partial or Gap against the metric schema in Section 3. Minimum known gaps: UISP and Bigleaf require custom Groovy DataSource development.
+  </div>
+</div>
+
+
+<!-- S3 METRICS -->
+<div class="section" id="s3">
+  <h2><span class="section-num">03</span> LM Metric Schema</h2>
+  <p>The following is the complete NHC metric set to be collected for every managed site. LM collects all of this regardless of SKU. What gets surfaced is controlled at the product layer (Section 9).</p>
+
+  <h3>Connectivity</h3>
+  <p style="font-size:13px;color:var(--ink-light);margin-bottom:10px;">For SG-2+ Resources, reachability is sourced from the cloud controller on supported platforms. For non-controller platforms, LM Collector ICMP (PingMulti DataSource) via NHC infrastructure is used. LM Website modules are SG-1 only and are retired on upgrade.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>Source — Cloud Controller Platforms</th><th>Source — Non-Controller Platforms</th><th>Interval</th></tr></thead>
+      <tbody>
+        <tr><td><code>reach.status</code></td><td>Device / circuit reachability (0/1)</td><td>Cloud controller device/circuit state</td><td>LM Collector ICMP (PingMulti DS)</td><td>60s</td></tr>
+        <tr><td><code>reach.latency_ms</code></td><td>Round-trip latency avg and p95</td><td>Cloud controller per-circuit latency</td><td>LM Collector ICMP</td><td>60s</td></tr>
+        <tr><td><code>reach.packet_loss_pct</code></td><td>Packet loss % over polling window</td><td>Cloud controller per-circuit loss</td><td>LM Collector ICMP</td><td>60s</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>WAN Circuits (per circuit instance)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>Source</th><th>Interval</th></tr></thead>
+      <tbody>
+        <tr><td><code>wan.status</code></td><td>0=down, 1=degraded, 2=up</td><td>Cloud controller API or SNMP ifOperStatus</td><td>60s</td></tr>
+        <tr><td><code>wan.latency_ms</code></td><td>Per-circuit round-trip latency</td><td>SD-WAN controller preferred; ICMP fallback</td><td>60s</td></tr>
+        <tr><td><code>wan.packet_loss_pct</code></td><td>Per-circuit packet loss</td><td>SD-WAN controller preferred; ICMP fallback</td><td>60s</td></tr>
+        <tr><td><code>wan.jitter_ms</code></td><td>Per-circuit jitter</td><td>SD-WAN controller</td><td>60s</td></tr>
+        <tr><td><code>wan.throughput_in_mbps</code></td><td>Inbound throughput</td><td>SNMP ifInOctets or API</td><td>5m</td></tr>
+        <tr><td><code>wan.throughput_out_mbps</code></td><td>Outbound throughput</td><td>SNMP ifOutOctets or API</td><td>5m</td></tr>
+        <tr><td><code>wan.utilization_pct</code></td><td>% of committed capacity (derived)</td><td>Throughput ÷ CIR</td><td>5m</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Device Health</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>Source</th><th>Interval</th></tr></thead>
+      <tbody>
+        <tr><td><code>sys.cpu_util_pct</code></td><td>CPU utilization %</td><td><code>hrProcessorLoad</code> or vendor OID</td><td>5m</td></tr>
+        <tr><td><code>sys.mem_util_pct</code></td><td>Memory utilization %</td><td><code>hrStorageUsed/Size</code></td><td>5m</td></tr>
+        <tr><td><code>sys.temp_c</code></td><td>Chassis temperature °C</td><td><code>entSensorValue</code> or vendor MIB</td><td>5m</td></tr>
+        <tr><td><code>sys.uptime_sec</code></td><td>Device uptime</td><td><code>sysUpTime</code></td><td>5m</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Interface Health (per port instance)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>OID</th></tr></thead>
+      <tbody>
+        <tr><td><code>intf.oper_status</code></td><td>Port operational state</td><td><code>ifOperStatus</code></td></tr>
+        <tr><td><code>intf.errors_in_rate</code></td><td>Input error rate</td><td><code>ifInErrors</code></td></tr>
+        <tr><td><code>intf.errors_out_rate</code></td><td>Output error rate</td><td><code>ifOutErrors</code></td></tr>
+        <tr><td><code>intf.discards_in_rate</code></td><td>Input discard rate</td><td><code>ifInDiscards</code></td></tr>
+        <tr><td><code>intf.discards_out_rate</code></td><td>Output discard rate</td><td><code>ifOutDiscards</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cellular — Peplink B1, Cradlepoint 1850 (per SIM instance)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td><code>cell.rsrp_dbm</code></td><td>Reference Signal Received Power</td><td>InControl2 / NetCloud API or SNMP</td></tr>
+        <tr><td><code>cell.rsrq_db</code></td><td>Reference Signal Quality</td><td>API or SNMP</td></tr>
+        <tr><td><code>cell.sinr_db</code></td><td>Signal-to-Noise Ratio</td><td>API</td></tr>
+        <tr><td><code>cell.connection_state</code></td><td>Connected / Searching / Disconnected</td><td>API</td></tr>
+        <tr><td><code>cell.carrier</code></td><td>Active carrier and band</td><td>API — informational</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>VoIP — Cisco 2400</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Description</th><th>MIB</th></tr></thead>
+      <tbody>
+        <tr><td><code>voip.active_calls</code></td><td>Active call count</td><td>CISCO-VOICE-DIAL-CONTROL-MIB</td></tr>
+        <tr><td><code>voip.mos_avg</code></td><td>Average MOS score</td><td>CISCO-VOICE-DIAL-CONTROL-MIB</td></tr>
+        <tr><td><code>voip.jitter_ms</code></td><td>Voice path jitter</td><td>CISCO-VOICE-DIAL-CONTROL-MIB</td></tr>
+        <tr><td><code>voip.call_fail_rate</code></td><td>Call failure rate per interval</td><td>CISCO-VOICE-DIAL-CONTROL-MIB</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- S4 ALERT ARCHITECTURE -->
+<div class="section" id="s4">
+  <h2><span class="section-num">04</span> Alert Architecture</h2>
+
+  <h3>Standard Thresholds (NHC Baseline)</h3>
+  <p>All thresholds are configurable at the Device Group level via LM property overrides for site-specific variance. Alert confirmation cycles prevent false positives from transient conditions.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Warning</th><th>Critical</th><th>Cycles</th></tr></thead>
+      <tbody>
+        <tr><td><code>icmp.reachable</code></td><td>—</td><td class="badge-crit">= 0</td><td>2</td></tr>
+        <tr><td><code>icmp.latency_ms</code></td><td class="badge-warn">&gt; 150ms</td><td class="badge-crit">&gt; 300ms</td><td>3</td></tr>
+        <tr><td><code>icmp.packet_loss_pct</code></td><td class="badge-warn">&gt; 2%</td><td class="badge-crit">&gt; 5%</td><td>3</td></tr>
+        <tr><td><code>wan.status</code></td><td>Degraded</td><td class="badge-crit">Down</td><td>2</td></tr>
+        <tr><td><code>wan.latency_ms</code></td><td class="badge-warn">&gt; 150ms</td><td class="badge-crit">&gt; 300ms</td><td>3</td></tr>
+        <tr><td><code>wan.packet_loss_pct</code></td><td class="badge-warn">&gt; 2%</td><td class="badge-crit">&gt; 5%</td><td>3</td></tr>
+        <tr><td><code>wan.utilization_pct</code></td><td class="badge-warn">&gt; 70%</td><td class="badge-crit">&gt; 90%</td><td>3</td></tr>
+        <tr><td><code>sys.cpu_util_pct</code></td><td class="badge-warn">&gt; 70%</td><td class="badge-crit">&gt; 85%</td><td>3</td></tr>
+        <tr><td><code>sys.mem_util_pct</code></td><td class="badge-warn">&gt; 75%</td><td class="badge-crit">&gt; 90%</td><td>3</td></tr>
+        <tr><td><code>sys.temp_c</code></td><td class="badge-warn">&gt; 65°C</td><td class="badge-crit">&gt; 75°C</td><td>3</td></tr>
+        <tr><td><code>intf.errors_in_rate</code></td><td class="badge-warn">&gt; 0.1%</td><td class="badge-crit">&gt; 1%</td><td>3</td></tr>
+        <tr><td><code>cell.rsrp_dbm</code></td><td class="badge-warn">&lt; -100 dBm</td><td class="badge-crit">&lt; -110 dBm</td><td>3</td></tr>
+        <tr><td><code>voip.mos_avg</code></td><td class="badge-warn">&lt; 3.5</td><td class="badge-crit">&lt; 2.5</td><td>3</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Alert Naming Convention</h3>
+  <div style="background:var(--code-bg);border:1px solid var(--rule);border-radius:4px;padding:12px 16px;font-family:'Cascadia Code','Consolas',monospace;font-size:13px;color:var(--ink);margin:12px 0;line-height:1.9;">
+    [SITE_NAME] — [DEVICE_TYPE] — [ALERT_TYPE] — [INSTANCE]<br><br>
+    <span style="color:var(--ink-light);">// Examples</span><br>
+    ACME-BOSTON — FortiGate — WAN Circuit Down — WAN1<br>
+    ACME-BOSTON — VeloCloud — Site Down — All WANs<br>
+    ACME-BOSTON — Cradlepoint — Cellular Signal Degraded — SIM1-ATT<br>
+    ACME-BOSTON — Cisco2400 — VoIP Quality Degraded — MOS 2.1
+  </div>
+
+  <h3>Multi-WAN Alert Dependency &amp; Suppression</h3>
+  <p>Without suppression a single site outage generates a device ICMP alert plus individual alerts for every WAN circuit and interface simultaneously. The following parent-child rules must be configured for all managed sites.</p>
+
+  <div class="callout note">
+    <strong>Core Principle</strong>
+    When a device is unreachable (ICMP down), all child DataSource alerts on that device are suppressed. One composite alert fires. Rules below are additive and work together.
+  </div>
+
+  <h4>Rule 1 — All WANs Down + Device Unreachable → Site Down</h4>
+  <p><strong>Condition:</strong> <code>icmp.reachable = 0</code> AND cloud controller confirms all WAN circuits down<br>
+  <strong>Action:</strong> Fire single <span class="tag red">CRITICAL: Site Down</span> — suppress all child WAN and interface alerts<br>
+  <strong>Ticket:</strong> P1 — CustomCall NOC Immediate</p>
+
+  <h4>Rule 2 — Single WAN Down, Device Reachable</h4>
+  <p><strong>Condition:</strong> <code>icmp.reachable = 1</code> AND one WAN circuit = down per cloud controller<br>
+  <strong>Action:</strong> Fire <span class="tag red">CRITICAL: WAN Circuit Down</span> on the specific circuit only. Note in ticket that failover may be active.<br>
+  <strong>Ticket:</strong> P2 — CustomCall NOC Urgent</p>
+
+  <h4>Rule 3 — WAN Degraded, Device Reachable</h4>
+  <p><strong>Condition:</strong> <code>icmp.reachable = 1</code> AND circuit metric threshold exceeded<br>
+  <strong>Action:</strong> Fire <span class="tag amber">WARNING: WAN Circuit Degraded</span> on the specific circuit<br>
+  <strong>Ticket:</strong> P3 — CustomCall NOC Monitor</p>
+
+  <h4>Rule 4 — Controller Reports Circuit Down, ICMP Reachable</h4>
+  <p><strong>Condition:</strong> Cloud controller (VCO, Bigleaf) reports circuit = down, device ICMP = reachable<br>
+  <strong>Action:</strong> Fire <span class="tag red">CRITICAL: WAN Circuit Down</span> — tag alert source as controller name. This pattern distinguishes an ISP-side circuit failure from a CPE device failure.</p>
+</div>
+
+
+<!-- S5 TICKETING -->
+<div class="section" id="s5">
+  <h2><span class="section-num">05</span> CustomCall Ticket Integration</h2>
+  <p>Ticket creation is driven entirely by NHC's internal alert rules and NOC policy — not by the customer's SKU. Any alert condition that NHC determines warrants NOC attention creates a ticket in CustomCall so the team can proactively work the issue regardless of what tier the customer is on. The SKU controls what the customer sees in the portal and whether they receive notifications — it has no bearing on internal ticket creation.</p>
+
+  <h3>Normalized Ticket Payload</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Field</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Customer / Account ID</td><td><code>nhc.account_id</code> device property</td></tr>
+        <tr><td>Site Name / ID</td><td><code>nhc.site_id</code> device property</td></tr>
+        <tr><td>Device Hostname / IP</td><td>LM <code>system.hostname</code></td></tr>
+        <tr><td>Device Type</td><td><code>nhc.device_type</code> device property</td></tr>
+        <tr><td>Alert Type (NHC taxonomy)</td><td>Normalized from LM DataSource + Datapoint name</td></tr>
+        <tr><td>Severity / Priority</td><td>LM alert level → P1/P2/P3 map</td></tr>
+        <tr><td>Metric Value at Alert</td><td>LM <code>##VALUE##</code></td></tr>
+        <tr><td>Threshold</td><td>LM <code>##THRESHOLD##</code></td></tr>
+        <tr><td>Circuit / Interface Instance</td><td>LM instance name (normalized)</td></tr>
+        <tr><td>Alert Start Time (UTC)</td><td>LM <code>##START##</code></td></tr>
+        <tr><td>Cloud Controller Source</td><td><code>nhc.controller_source</code> device property</td></tr>
+        <tr><td>Auto-Remediation Status</td><td>Set by automation service post-action (Section 6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Ticket Routing</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Alert Type</th><th>Level</th><th>Priority</th><th>CustomCall Queue</th></tr></thead>
+      <tbody>
+        <tr><td>Device Unreachable / Site Down</td><td><span class="tag red">Critical</span></td><td>P1</td><td>NOC — Immediate</td></tr>
+        <tr><td>WAN Circuit Down</td><td><span class="tag red">Critical</span></td><td>P2</td><td>NOC — Urgent</td></tr>
+        <tr><td>WAN Circuit Degraded</td><td><span class="tag">Warning</span></td><td>P3</td><td>NOC — Monitor</td></tr>
+        <tr><td>CPU / Memory / Temp</td><td><span class="tag">Warning</span></td><td>P3</td><td>NOC — Monitor</td></tr>
+        <tr><td>Interface Errors</td><td><span class="tag">Warning</span></td><td>P3</td><td>NOC — Monitor</td></tr>
+        <tr><td>Cellular Signal Degraded</td><td><span class="tag">Warning</span></td><td>P3</td><td>NOC — Monitor</td></tr>
+        <tr><td>VoIP Quality Degraded</td><td><span class="tag">Warning</span></td><td>P3</td><td>VoIP Team</td></tr>
+        <tr><td>PDU Auto-Reboot Event</td><td>Event</td><td>P2</td><td>Appended to parent circuit ticket</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- S6 REMEDIATION -->
+<div class="section" id="s6">
+  <h2><span class="section-num">06</span> Automated Remediation</h2>
+  <p>LM is configured to support remediation workflows for all sites. Whether remediation actually fires at a given site is gated by <code>nhc.sg_sku</code> and <code>nhc.pdu_auto_reboot_enabled</code>. The initial workflow is PDU-triggered circuit recovery.</p>
+
+  <div class="callout warn">
+    <strong>Safeguards Required Before Production Enablement</strong>
+    Cooldown enforcement, SDT checks, and full audit logging must all be in place and validated in dry-run mode before <code>nhc.pdu_auto_reboot_enabled</code> is set to <code>true</code> on any production site.
+  </div>
+
+  <h3>Workflow: WAN Circuit Down → PDU Port Reboot</h3>
+  <h4>All conditions must be true to fire</h4>
+  <ul class="body-list">
+    <li>Alert type = WAN Circuit Down (Critical)</li>
+    <li>Alert active for ≥ <code>nhc.pdu_trigger_delay_min</code> minutes (default: 3)</li>
+    <li><code>nhc.pdu_present = true</code> and <code>nhc.pdu_auto_reboot_enabled = true</code></li>
+    <li>No active Scheduled Downtime on the device or device group</li>
+    <li>No reboot performed on this outlet within <code>nhc.pdu_cooldown_min</code> minutes (default: 60)</li>
+  </ul>
+
+  <div class="flow">
+    <div class="flow-step"><div class="step-num">1</div><div class="step-content"><strong>WAN Circuit Down alert fires</strong> in LM after 2-cycle confirmation</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num">2</div><div class="step-content"><strong>Escalation chain webhook</strong> fires to NHC Automation Endpoint with <code>site_id</code>, <code>device_id</code>, <code>circuit_instance</code>, <code>alert_id</code>. <strong>CustomCall ticket created</strong> by alert rule at this point if not already open.</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num cond">CHK</div><div class="step-content"><strong>Automation validates all conditions</strong> — reads device properties from LM API, checks SDT, checks cooldown log. If any condition fails, automation logs the reason and exits without action — <strong>ticket note added:</strong> "Auto-remediation skipped: {reason} (SDT active / cooldown not elapsed / PDU not enabled)"</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num">3</div><div class="step-content"><strong>Resolve PDU target</strong> — reads <code>nhc.pdu_ip</code> and <code>nhc.pdu_port_wan1/2</code> from device properties based on circuit instance</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num">4</div><div class="step-content"><strong>Call Synaccess PDU REST API</strong> — <code>POST /restapi/powerCtrl</code> → reboot outlet. Log timestamp. <strong>Ticket note added:</strong> "Auto-remediation initiated: PDU outlet {N} reboot triggered at {time} for {circuit_instance}. Monitoring for recovery."</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num">5</div><div class="step-content"><strong>Write LM Event to device</strong> — "Auto-remediation: PDU outlet {N} rebooted — WAN circuit recovery attempt" (secondary audit trail in LM)</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num cond">CHK</div><div class="step-content"><strong>Monitor for recovery</strong> over 5-minute window via LM alert state or cloud controller poll</div></div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step"><div class="step-num">6A</div><div class="step-content"><strong>Recovered:</strong> Write LM Event confirming recovery. <strong>Ticket updated:</strong> "Circuit {instance} recovered at {time} following PDU reboot. No further action required." Ticket resolved/closed.</div></div>
+    <div class="flow-step" style="margin-top:8px;"><div class="step-num">6B</div><div class="step-content"><strong>Not recovered:</strong> Write LM Event. <strong>Ticket updated:</strong> "Auto-remediation attempted — PDU outlet {N} rebooted at {time}, no circuit recovery detected after {N} minutes. Manual intervention required." Ticket priority escalated to P1, assigned to NOC queue.</div></div>
+  </div>
+
+  <h3>Future Remediation Actions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Action</th><th>Trigger</th><th>Platform</th><th>Method</th></tr></thead>
+      <tbody>
+        <tr><td>Cellular SIM force-cycle</td><td>Cellular circuit down</td><td>Peplink B1, Cradlepoint 1850</td><td>InControl2 / NetCloud API</td></tr>
+        <tr><td>VeloCloud edge restart</td><td>Device unreachable + VCO tunnels = 0</td><td>VeloCloud</td><td>VCO REST API</td></tr>
+        <tr><td>FortiGate SD-WAN path override</td><td>Primary WAN down, SLA breach</td><td>Fortinet</td><td>FortiOS REST API</td></tr>
+        <tr><td>Bigleaf circuit force-failover</td><td>Circuit quality tier drop</td><td>Bigleaf</td><td>Bigleaf Cloud API</td></tr>
+        <tr><td>Auto-SDT from maintenance ticket</td><td>Maintenance ticket opened in CustomCall</td><td>All</td><td>LM API</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- S7 PORTAL -->
+<div class="section" id="s7">
+  <h2><span class="section-num">07</span> Portal &amp; Support Data Surface</h2>
+  <p>LM exposes all data via its REST API. NHC consumes this to power the customer portal and NOC support views. What a given customer sees in the portal is controlled by <code>nhc.sg_sku</code> at the application layer — LM provides the full dataset regardless.</p>
+
+  <h3>Data Available via LM API</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>LM API Endpoint Area</th></tr></thead>
+      <tbody>
+        <tr><td>Current device / circuit alert state</td><td>Alert API — per device group</td></tr>
+        <tr><td>Metric history (latency, utilization, loss, CPU, etc.)</td><td>DataSource metric history API — per device, per instance</td></tr>
+        <tr><td>Site availability / uptime %</td><td>SLA report API — per device group</td></tr>
+        <tr><td>Alert history (30/90 day)</td><td>Alert history API</td></tr>
+        <tr><td>Remediation event log</td><td>Device event log API</td></tr>
+        <tr><td>Active SDTs</td><td>SDT API</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>NOC Ticket Context Requirements</h3>
+  <p>When a CustomCall ticket is created, the support team must be able to pull a context snapshot without logging into LM directly:</p>
+  <ul class="body-list">
+    <li>Current ICMP status + 15-min latency and loss trend</li>
+    <li>WAN circuit status table — per circuit: status, latency, loss, utilization</li>
+    <li>Cloud controller site summary where applicable</li>
+    <li>Device health snapshot — CPU, memory, temperature</li>
+    <li>Last 5 site alerts with timestamps and resolution status</li>
+    <li>PDU reboot history (last 7 days) if <code>nhc.pdu_present = true</code></li>
+    <li>Active SDTs at this site</li>
+  </ul>
+</div>
+
+
+<!-- S8 PROPERTIES -->
+<div class="section" id="s8">
+  <h2><span class="section-num">08</span> NHC Device Property Schema</h2>
+  <p>These properties must be applied to every managed device at onboarding. They drive alert routing, ticket enrichment, suppression logic, remediation gating, and SKU-based feature entitlement.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Property Key</th><th>Description</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>nhc.account_id</code></td><td>NHC account identifier</td><td><code>ACCT-778122</code></td></tr>
+        <tr><td><code>nhc.site_id</code></td><td>NHC site identifier</td><td><code>SITE-BOS-001</code></td></tr>
+        <tr><td><code>nhc.device_type</code></td><td>NHC device type tag</td><td><code>FortiGate</code>, <code>VeloCloud</code>, <code>Peplink</code>…</td></tr>
+        <tr><td><code>nhc.role</code></td><td>Device role at site</td><td><code>gateway</code>, <code>switch</code>, <code>ap</code>, <code>pdu</code></td></tr>
+        <tr><td><code>nhc.sg_sku</code></td><td>STACKguard SKU assigned to this site</td><td><code>SG-1</code>, <code>SG-2</code>, <code>SG-3</code>, <code>SG-4</code></td></tr>
+        <tr><td><code>nhc.controller_source</code></td><td>Cloud controller platform</td><td><code>VeloCloud</code>, <code>Bigleaf</code>, <code>UniFi</code>…</td></tr>
+        <tr><td><code>nhc.controller_site_id</code></td><td>Device/edge ID in the cloud controller</td><td><code>vco-edge-12345</code></td></tr>
+        <tr><td><code>nhc.wan_count</code></td><td>Number of WAN circuits at this site</td><td><code>2</code></td></tr>
+        <tr><td><code>nhc.pdu_present</code></td><td>Synaccess PDU registered at this site</td><td><code>true</code></td></tr>
+        <tr><td><code>nhc.pdu_auto_reboot_enabled</code></td><td>Per-site opt-in for automated reboots</td><td><code>true</code></td></tr>
+        <tr><td><code>nhc.pdu_ip</code></td><td>PDU management IP or FQDN</td><td><code>10.x.x.x</code></td></tr>
+        <tr><td><code>nhc.pdu_port_wan1</code></td><td>PDU outlet for WAN1 circuit device</td><td><code>1</code></td></tr>
+        <tr><td><code>nhc.pdu_port_wan2</code></td><td>PDU outlet for WAN2 circuit device</td><td><code>2</code></td></tr>
+        <tr><td><code>nhc.pdu_trigger_delay_min</code></td><td>Minutes before reboot fires after alert</td><td><code>3</code></td></tr>
+        <tr><td><code>nhc.pdu_cooldown_min</code></td><td>Min minutes between auto-reboots on same outlet</td><td><code>60</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- S9 SKU MAP -->
+<div class="section" id="s9">
+  <h2><span class="section-num">09</span> STACKguard SKU → Feature Exposure Map</h2>
+
+  <div class="callout note">
+    <strong>This Is the Customer Experience Layer — Not NHC NOC Policy</strong>
+    LM fires alerts and creates CustomCall tickets based on NHC's internal alert rules regardless of SKU. The table below describes what NHC's application layer surfaces to the <em>customer</em> based on <code>nhc.sg_sku</code> — portal visibility, customer notifications, and remediation enablement. Tickets are always created when NHC determines an alert warrants NOC attention.
+  </div>
+
+  <div class="table-wrap">
+    <table class="sku-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th style="text-align:center;">SG-1</th>
+          <th style="text-align:center;">SG-2</th>
+          <th style="text-align:center;">SG-3</th>
+          <th style="text-align:center;">SG-4</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="sku-name">
+            Reachability monitoring
+            <div style="font-weight:400;color:var(--ink-light);font-size:11px;margin-top:2px;">
+              SG-1: LM Website module &nbsp;·&nbsp; SG-2+: cloud controller (where available) or LM Collector ICMP via NHC infrastructure
+            </div>
+          </td>
+          <td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y">
+        </tr>
+        <tr><td class="sku-name">CustomCall ticket creation on alert <span style="font-weight:400;color:var(--ink-light);font-size:11px;">— NHC NOC policy, not SKU-gated</span></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Device onboarded as LM Resource <span style="font-weight:400;color:var(--ink-light);font-size:11px;">— Collector required</span></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Per-circuit WAN status via cloud controller</td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Multi-WAN alert suppression (single ticket per event)</td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">WAN circuit latency, loss, utilization metrics</td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Customer notification on circuit events</td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Device health metrics (CPU, memory, temperature)</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Interface error and discard monitoring</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Cellular signal quality metrics</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">VoIP quality metrics (MOS, jitter, call fail)</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Customer portal — site status &amp; circuit health</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Customer portal — device health &amp; availability reporting</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Customer notification on device health alerts</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">PDU-triggered circuit auto-recovery</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td></tr>
+        <tr><td class="sku-name">Decision tree remediation framework</td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check n"></td><td class="sku-check y"></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- S10 PLATFORM NOTES -->
+<div class="section" id="s10">
+  <h2><span class="section-num">10</span> Platform Implementation Notes</h2>
+
+  <div class="platform-grid">
+    <div class="platform-card">
+      <h4>Ubiquiti UniFi</h4>
+      <ul>
+        <li>UniFi Controller REST API preferred over SNMP</li>
+        <li>UDM Pro WAN interface state = authoritative circuit source</li>
+        <li>Device ICMP to UDM is parent for all site child alerts</li>
+        <li>Confirm LM Exchange DS against current UniFi API schema</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Ubiquiti UISP</h4>
+      <ul>
+        <li>UISP REST API only — no reliable SNMP for CPE metrics</li>
+        <li>Key: link quality, CCQ, signal, throughput per station</li>
+        <li>Custom Groovy DataSource required</li>
+        <li>Map UISP device via <code>nhc.controller_site_id</code></li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Juniper EX2300</h4>
+      <ul>
+        <li>SNMP: JUNIPER-ALARM-MIB + IF-MIB</li>
+        <li>Key: port status, error counters, chassis temp</li>
+        <li>SNMP traps → LM EventSource for link events</li>
+        <li>No cloud controller — SNMP is authoritative</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>VMware VeloCloud</h4>
+      <ul>
+        <li>VCO REST API: <code>getEnterpriseEdgeList</code>, <code>getEdgeStatusMetrics</code></li>
+        <li>Per-link: latency, loss, jitter, bandwidth, quality score</li>
+        <li>VCO webhook → LM EventSource for link state changes</li>
+        <li>Dual-path: VCO circuit state + device ICMP for suppression</li>
+        <li>Map edge via <code>nhc.controller_site_id</code></li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Bigleaf SD-WAN</h4>
+      <ul>
+        <li>Bigleaf Cloud REST API — circuit status, quality tier, failover</li>
+        <li>Custom Groovy DataSource required — no Exchange DS</li>
+        <li>Webhook → LM EventSource for circuit state changes</li>
+        <li>Dual-path: Bigleaf API + device ICMP for suppression</li>
+        <li>Map site via <code>nhc.controller_site_id</code></li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Fortinet FortiGate</h4>
+      <ul>
+        <li>SNMP: <code>fnSysCpuUsage</code>, <code>fnSysMemUsage</code>, <code>fgTempSensor</code>, IF-MIB</li>
+        <li>FortiOS REST API: SD-WAN SLA, VPN tunnels, HA state</li>
+        <li>SNMP traps: link up/down, HA failover → LM EventSource</li>
+        <li>Verify Exchange DS covers SD-WAN SLA datapoints</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Cisco 2400 (VoIP)</h4>
+      <ul>
+        <li>SNMP: CISCO-VOICE-DIAL-CONTROL-MIB for calls, MOS, jitter</li>
+        <li>CISCO-PROCESS-MIB (CPU), CISCO-MEMORY-POOL-MIB (memory)</li>
+        <li>IF-MIB for WAN utilization and error counters</li>
+        <li>Confirm Exchange DS covers VoIP MIBs</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Peplink B1</h4>
+      <ul>
+        <li>InControl2 API preferred for WAN health + cellular metrics</li>
+        <li>SNMP pepwave MIB as fallback</li>
+        <li>Key: per-SIM RSRP, RSRQ, SINR, carrier, connection state</li>
+        <li>Custom DS likely needed for InControl2 — confirm Exchange</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Cradlepoint 1850</h4>
+      <ul>
+        <li>NetCloud API preferred over SNMP for full cellular data</li>
+        <li>Key: WAN zone state, RSRP/RSRQ/SINR, usage per interface</li>
+        <li>Map via <code>nhc.controller_site_id</code> = NetCloud router ID</li>
+        <li>Confirm Exchange DS availability for NetCloud API</li>
+      </ul>
+    </div>
+    <div class="platform-card">
+      <h4>Synaccess PDU</h4>
+      <ul>
+        <li>ICMP monitored as standard device (SG-1 baseline)</li>
+        <li>Outlet state polled via REST API for health visibility</li>
+        <li>REST API called by NHC automation for SG-4 reboot actions</li>
+        <li>All actions logged as LM Events on the associated edge device</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- S11 BUILD PHASES -->
+<div class="section" id="s11">
+  <h2><span class="section-num">11</span> Build Phases</h2>
+  <p>Phases represent the order in which the LM platform is built out — not product tiers. All capabilities are built into a single unified LM configuration; SKU-gating happens at the NHC application layer.</p>
+
+  <div class="phase-grid">
+    <div class="phase-card">
+      <div class="phase-head">Phase 1 — SG-1 Website Module Setup (Complete)</div>
+      <div class="phase-body"><ul>
+        <li>LM Website modules configured per customer IP</li>
+        <li>Check interval and alert confirmation cycles set</li>
+        <li>Alert Rules → CustomCall ticket creation on unreachable</li>
+        <li>Auto-clear on recovery</li>
+        <li>No Collector deployed, no Resource onboarding required</li>
+      </ul></div>
+    </div>
+    <div class="phase-card">
+      <div class="phase-head">Phase 2 — Resource Onboarding &amp; Circuit Monitoring</div>
+      <div class="phase-body"><ul>
+        <li>LM Collector deployment and validation at NHC PoPs</li>
+        <li>Device onboarding as LM Resources with property schema applied</li>
+        <li>Exchange DS gap analysis across full fleet</li>
+        <li>API DataSources: VeloCloud, Bigleaf, Peplink, Cradlepoint, UISP</li>
+        <li>WAN circuit metric schema across all platforms</li>
+        <li>Parent-child alert dependency / multi-WAN suppression</li>
+        <li>Cloud controller EventSource ingestion (VCO + Bigleaf webhooks)</li>
+        <li>Enriched CustomCall ticket payload with circuit context</li>
+      </ul></div>
+    </div>
+    <div class="phase-card">
+      <div class="phase-head">Phase 3 — Device Health &amp; Normalization</div>
+      <div class="phase-body"><ul>
+        <li>Device health DataSources: CPU, memory, temp, interface errors</li>
+        <li>Cellular metric DS for Peplink and Cradlepoint</li>
+        <li>VoIP metric DS for Cisco 2400</li>
+        <li>LM API endpoint validation for NHC portal integration</li>
+        <li>NHC standard site dashboard template in LM</li>
+        <li>SLA report configuration per site / per circuit</li>
+      </ul></div>
+    </div>
+    <div class="phase-card">
+      <div class="phase-head">Phase 4 — Automated Remediation</div>
+      <div class="phase-body"><ul>
+        <li>Remediation device property schema on PDU-enabled sites</li>
+        <li>Escalation chain webhook for circuit-down trigger</li>
+        <li>NHC automation service: PDU API, cooldown, LM event write</li>
+        <li>Recovery detection and CustomCall ticket update</li>
+        <li>Dry-run / audit mode before production opt-in per site</li>
+        <li>Extensibility framework for future remediation actions</li>
+      </ul></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- S12 OPEN QUESTIONS -->
+<div class="section" id="s12">
+  <h2><span class="section-num">12</span> Open Questions for LM Team</h2>
+
+  <div class="oq-item">
+    <div class="oq-num">1</div>
+    <div class="oq-content">
+      <strong>DataSource Exchange Gap Analysis</strong>
+      For each platform in Section 2, confirm Exchange DS availability and coverage against the metric schema in Section 3. Document gaps requiring custom Groovy development and provide effort estimates. Known gaps: UISP and Bigleaf.
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">2</div>
+    <div class="oq-content">
+      <strong>Multi-WAN Suppression — Native vs. Custom</strong>
+      What is the recommended LM-native approach for the suppression rules in Section 4 when the parent circuit state is sourced from a cloud controller API poll rather than device ICMP? Is this achievable natively, or does it require a combination of alert rules and escalation logic?
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">3</div>
+    <div class="oq-content">
+      <strong>Cloud Controller Webhook EventSources</strong>
+      Does LM support VeloCloud (VCO) and Bigleaf webhook push events as native EventSources? Can those events be correlated with DataSource alerts on the same device group to form composite site health status? If not natively, NHC will proxy via middleware writing LM events through the API — confirm that path is supportable.
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">4</div>
+    <div class="oq-content">
+      <strong>Custom Groovy DataSource Development</strong>
+      Can LM professional services provide development support or starter templates for REST API polling DataSources for the confirmed gap platforms? What is the engagement model?
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">5</div>
+    <div class="oq-content">
+      <strong>Escalation Chain Webhook Capabilities</strong>
+      What is the full token set available in LM Escalation Chain HTTP Delivery webhook payloads? Is there a LM-native scripting option (Groovy alert script) that could execute a REST API call without an external automation service? What are the security and audit logging considerations?
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">6</div>
+    <div class="oq-content">
+      <strong>LM REST API — Portal Integration</strong>
+      Confirm recommended endpoints for: per-device per-DataSource metric history, per-device current alert state, per-device event log, and site-level SLA availability. NHC will consume these to power the customer portal and NOC context panel.
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">7</div>
+    <div class="oq-content">
+      <strong>SDT Programmatic Control</strong>
+      Can Scheduled Downtime windows be created and cleared via LM REST API? NHC intends to auto-create SDTs from CustomCall when a maintenance ticket is opened. What are the permission and rate limit constraints?
+    </div>
+  </div>
+  <div class="oq-item">
+    <div class="oq-num">8</div>
+    <div class="oq-content">
+      <strong>Collector Sizing</strong>
+      Given API polling load from VeloCloud, Bigleaf, UniFi, Peplink InControl2, and NetCloud in addition to SNMP for all devices — what is the recommended Collector count and sizing? Should dedicated Collectors be scoped for cloud controller API polling vs. device-side SNMP?
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;color:var(--ink-light);font-size:11px;flex-wrap:wrap;gap:8px;">
+  <span>New Horizon Communications — STACKguard LM Platform Specification v2.0 Draft</span>
+  <span>Prepared for LogicMonitor Implementation Team — For Review</span>
+</div>
+
+</body>
+</html>
